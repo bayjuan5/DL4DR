@@ -1,0 +1,49 @@
+# ── Generated data (do not commit) ──────────────────────────
+#genomic_images/
+#gradcam_outputs/
+results/
+
+# ── Model checkpoints ────────────────────────────────────────
+checkpoints/
+*.pt
+*.pth
+
+# ── Numpy arrays ─────────────────────────────────────────────
+*.npy
+
+# ── Raw DepMap bulk downloads (too large for git) ────────────
+data/OmicsExpression*.csv
+data/OmicsSomaticMutations.csv
+data/cellTiter_Glo.txt
+data/gene_expression_full/
+
+# ── Python cache ─────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# ── Environments ─────────────────────────────────────────────
+.env
+venv/
+.venv/
+
+# ── IDE ──────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+
+# ── OS ───────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─────────────────────────────────────────────────────────────
+# Files that SHOULD be committed (or tracked via Git LFS):
+#   data/BREAST-136344-56786-51.txt
+#   data/CompoundSmiles_full_140474.txt
+#
+# To use Git LFS:
+#   git lfs install
+#   git lfs track "data/*.txt"
+#   git add .gitattributes
+# ─────────────────────────────────────────────────────────────

@@ -1,0 +1,10 @@
+torch>=2.0
+torchvision>=0.15
+numpy>=1.24
+scipy>=1.10
+scikit-learn>=1.2
+pillow>=9.0
+matplotlib>=3.7
+rdkit-pypi>=2023.3
+# Optional: full D-MPNN graph batching
+# chemprop>=2.0
