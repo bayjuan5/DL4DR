@@ -1,9 +1,12 @@
-# DL4DR — Residual Multi-Modal Learning for Drug Response Prediction
-
-**From single-cell-line memorisation to multi-cell-line genomic image conditioning**
-
+From single-cell-line memorisation to multi-cell-line genomic image conditioning
 > MD Anderson Cancer Center · DL4DR Project  
 > Theory document: `ORNN_DMPNN_Theory_v18.pdf`
+---
+🧭 The Vision: Navigational Lights for Precision Oncology
+> *"I've been thinking of using 51 cell lines' activities toward compounds as navigational aid lights, guiding us to search for the right drugs for new patients based on their own specific gene expressions and mutations."*
+In traditional Drug Response Prediction (DRP), models often fall into the trap of memorizing cell line IDs, completely failing to generalize when facing an independent clinical cohort.
+This repository treats the multi-omic profiles of established cancer cell lines not as isolated data points, but as a network of co-localized navigational lighthouses in a hidden biological latent space. By encoding a new patient’s distinct genomic architecture—their unique gene expression profiles and somatic mutation burdens—into this same multi-modal coordinate system, our framework maps exactly where the patient stands relative to known drug potencies.
+By anchoring our predictions to these "navigational lights," we shift from blind algorithmic guessing to true context-driven genomic conditioning. This sets the stage for scaling drug sensitivity maps from bulk cell profiles to the highly complex, heterogeneous spatial niches of actual patient tumors.
 
 ---
 
