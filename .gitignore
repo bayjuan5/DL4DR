@@ -4,9 +4,9 @@
 results/
 
 # ── Model checkpoints ────────────────────────────────────────
-checkpoints/
-*.pt
-*.pth
+# checkpoints/
+# *.pt
+# *.pth
 
 # ── Numpy arrays ─────────────────────────────────────────────
 *.npy
