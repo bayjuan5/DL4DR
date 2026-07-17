@@ -33,7 +33,7 @@ f(compound, cell_line) = f_hard(x_ECFP ⊕ z_C)
 - Residual Fusion outperforms ECFP-Only in **48 / 51 cell lines (94.1%)**
 - Mean ΔR² = +0.016 across all 51 lines
 - Random-split R² = 0.61–0.69 across representative cell lines
-- CellLineTower GradCAM independently recovers **PIK3CA** as the top genomic discriminator (30× enrichment over chance for known cancer drivers)
+- CellLineTower GradCAM independently recovers known cancer driver genes as top genomic discriminators (30× enrichment over chance); in the current preprint's cross-cell-line analysis, **FSIP2** leads (6/51 cell lines) followed by **TP53** (5/51)
 
 ---
 
@@ -48,8 +48,23 @@ DL4DR/
 ├── evaluate.py                  # Three-split evaluation + baseline comparison
 ├── external_validation.py       # CellTiter-Glo external validation (603 cell lines)
 ├── run_gradcam.py               # CellLineTower GradCAM interpretability
+├── checkpoints/                 # Trained core-model checkpoints (best_random.pt, etc.)
+├── generative/                  # Conditional generative module (compound design)
+│   ├── model.py                 # SmilesVocab, FrozenCellLineEncoder, ConditionalSmilesVAE
+│   ├── train.py                 # VAE training loop, conditioned on frozen z_C
+│   ├── eval_novelty_and_conditioning.py  # Validity / uniqueness / novelty / cell-line
+│   │                                     # conditioning-sensitivity evaluation harness
+│   └── checkpoints_gen/         # best_vae.pt, final_vae.pt
 └── README.md
 ```
+
+The generative module builds on the core Two-Tower model above: it freezes the trained
+CellLineTower genomic encoder (z_C) as a conditioning signal and trains a SMILES VAE to
+propose novel candidate compounds for a given cell line. See `generative/` for the
+architecture, training script, and the evaluation harness used to check generated-molecule
+validity, uniqueness (mode collapse), novelty (Tanimoto similarity to the training set), and
+whether generation is actually sensitive to the cell-line conditioning signal.
+
 
 ---
 
@@ -202,7 +217,7 @@ TOP_K           = 20
 Outputs per cell line: 4-panel figure (expression GradCAM | mutation GradCAM | combined | driver bar chart).  
 Cross-cell-line summary: `driver_gene_frequency_summary.png` — frequency of each gene being a top activator across all 51 cell lines.
 
-**Verified finding:** PIK3CA appears as the top cross-cell-line activator (10/51 cell lines, 30× enrichment over the chance expectation for known cancer drivers), without any pathway prior being injected during training.
+**Verified finding:** Known cancer driver genes appear as top cross-cell-line activators (30× enrichment over the chance expectation), without any pathway prior being injected during training. In the current preprint's cross-cell-line analysis, FSIP2 leads (6/51 cell lines) followed by TP53 (5/51).
 
 ---
 
@@ -247,6 +262,42 @@ Three independent interpretability axes (Section 9 of theory document):
 | Case 1 | ECFP hard-memory | Gradient × input on atom features | Which atoms drive predicted potency? |
 | Case 2 | ORNN compound image | GradCAM (last Conv2d, high-freq branch) | Which structural regions drive the residual correction? |
 | Case 3 | CellLineTower genomic | GradCAM (Block 3, `encoder[17]`) | Which genomic loci define cell line identity? |
+
+---
+
+## Generative Module (Compound Design)
+
+`generative/` contains a conditional SMILES VAE that proposes novel candidate compounds for
+a target cell line, conditioned on that cell line's frozen genomic embedding (z_C) from the
+core Two-Tower model above.
+
+```bash
+cd generative/
+
+# Train the VAE (conditioned on frozen z_C from a core-model checkpoint)
+python train.py \
+    --smiles  ../data/CompoundSmiles_full_140474.txt \
+    --data    ../data/BREAST-136344-56786-51.txt \
+    --genomic ../genomic_images \
+    --dl4dr_ckpt ../checkpoints/best_random.pt
+
+# Evaluate: validity, uniqueness (mode collapse check), novelty (Tanimoto vs. training
+# set), and cross-cell-line conditioning sensitivity
+python eval_novelty_and_conditioning.py \
+    --vae_ckpt   checkpoints_gen/best_vae.pt \
+    --dl4dr_ckpt ../checkpoints/best_random.pt \
+    --data       ../data/BREAST-136344-56786-51.txt \
+    --smiles     ../data/CompoundSmiles_full_140474.txt \
+    --genomic    ../genomic_images \
+    --n_samples  200 --n_cell_lines 3
+```
+
+Current status: validity, uniqueness, and cross-cell-line conditioning-sensitivity numbers
+vary noticeably by run/checkpoint (`best_vae.pt` vs. `final_vae.pt`) and are still being
+reconciled — see the evaluation harness output for the specific metrics being tracked
+(validity rate, unique/valid ratio, exact-training-set duplicate rate, novelty rate, mean
+nearest-neighbor Tanimoto similarity, and pairwise generated-set overlap across cell lines).
+This module is active work-in-progress, not a finalized result.
 
 ---
 
@@ -296,5 +347,5 @@ Driver gene annotation uses:
 ## Acknowledgements
 
 Computational resources: Texas Advanced Computing Center (TACC), allocation MCB23032.  
-Model training: Google Colaboratory (NVIDIA Tesla T4).  
+Model training: initial development on Google Colaboratory (NVIDIA Tesla T4); large-scale training runs for the released checkpoints executed on a collaborator's GPU infrastructure.  
 Data: DepMap consortium and GDSC project.
