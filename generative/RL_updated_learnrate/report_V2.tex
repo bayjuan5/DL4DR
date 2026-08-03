@@ -1,0 +1,258 @@
+\documentclass[11pt]{article}
+
+\usepackage[letterpaper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{hyperref}
+\usepackage{parskip}
+\usepackage{microtype}
+\sloppy
+
+\definecolor{notegray}{HTML}{666666}
+\definecolor{headshade}{HTML}{D9E2F3}
+
+\newcommand{\note}[1]{{\itshape\color{notegray}#1\par}}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\titleformat{\section}{\normalfont\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection}{1em}{}
+
+\setlist[itemize]{leftmargin=1.4em, itemsep=0.35em, topsep=0.3em}
+
+\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue}
+
+\title{\textbf{DL4DR Compound Generator --- RL Fine-Tuning}\\[4pt]
+\Large Part 2: v5 --- Fixing the v4 Scaffold-Repetition Loophole}
+\author{}
+\date{\itshape\color{notegray} Draft v0 --- 2026-07-30}
+
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\section{Continuity from report\_V1.docx}
+
+report\_V1.docx covers v1--v4 of this investigation: REINFORCE fine-tuning of a SMILES VAE compound generator against the frozen DL4DR predictor, hunting for reward hacking. Summary of where it left off:
+
+\begin{itemize}
+  \item v1--v3: tuning \code{entropy\_coef}/\code{invalid\_penalty} alone never fixed a severe mode collapse (posterior-mode uniqueness stuck at 5--8\%), and raising \code{entropy\_coef} 50x made no difference --- traced to a magnitude mismatch: the entropy bonus is capped at
+  \[
+    H_{\text{bonus}}^{\max} \;=\; \beta \ln|V| \;\approx\; 2,
+  \]
+  where $\beta=$~\code{entropy\_coef} and $|V|=52$ is the vocabulary size, versus an RL loss term in the hundreds.
+  \item v4 added a batch-level repetition penalty
+  \[
+    r_i \;\mathrel{-}=\; \lambda_{\text{div}}\,(\text{count}_i - 1)
+  \]
+  for exact canonical-SMILES duplicates within a batch. Result: posterior uniqueness rose 4--5x (to $\approx$29\%) at v2-level reward/validity --- real progress, confirmed across 15 cell lines.
+  \item \textbf{But}: v4's Collapse-check diagnostic found the fix has a loophole. Because the penalty only matches exact strings, the policy learned to enumerate chain-length/branching variants of one simple scaffold (\code{CCCOC(O)OC}, \code{CCCCOC(O)OC}, \code{COC(O)OCCO}, \ldots) --- each a technically distinct string, so none penalized relative to the others, despite being chemically near-identical. Present in the top-2 repeats of ALL 15 cell lines tested.
+\end{itemize}
+
+This report covers v5, which targets that loophole directly, plus a data-coverage improvement the user raised (Section~\ref{sec:datascale}).
+
+\section{Corrected Data-Scale Analysis}
+\label{sec:datascale}
+
+An earlier back-of-envelope estimate ($51$ cell lines $\times \approx 50$ compounds $\approx 2{,}550$ total (cell line, compound) pairs) was checked against the actual training data and found significantly off:
+
+\begin{center}
+\begin{tabular}{@{}l l l@{}}
+\toprule
+ & \textbf{Earlier estimate} & \textbf{Actual (BREAST-136344-56786-51.txt)} \\
+\midrule
+Total records & $\approx 2{,}550$ & $136{,}344$ \\
+Compounds / cell line & $\approx 50$ (assumed uniform) & min $21$, max $43{,}061$, mean $\approx 2{,}673$ (highly skewed) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Implication:} ``full coverage'' of every (cell line, compound) pair is not achievable at any practical epoch count --- even $12{,}000$ epochs gives
+\[
+  \underbrace{\frac{12{,}000}{51}}_{\approx\,235\text{ visits/cell line}} \times \underbrace{64}_{\text{draws/visit}} \;\approx\; 15{,}040 \text{ max distinct draws},
+\]
+which would only reach $\sim$35\% of the largest single pool (ACH-000019, $43{,}061$ compounds), assuming zero redundant draws. The realistic goal for v5 is \emph{meaningfully better} coverage, not complete coverage --- addressed by raising epochs ($2{,}000 \to 10{,}000$) and cold sampling (Section~\ref{sec:cold}), not by either change alone.
+
+\note{Cell-line-level rotation (\code{epoch \% 51}) already visits every cell line equally regardless of its pool size, in v1--v4 as well as v5 --- the imbalance problem is specifically about which compounds get sampled WITHIN a cell line's pool, not which cell lines get trained on.}
+
+\section{v5 Change 1: Tanimoto-Threshold Repetition Penalty}
+\label{sec:tanimoto}
+
+Replaces v4's exact canonical-SMILES-equality check with fingerprint-similarity clustering: two valid molecules in the same batch are grouped together (via union-find over all pairs) if their Morgan fingerprint (radius $=2$, $2048$ bits) Tanimoto similarity is $\geq$ \code{tanimoto\_threshold}. The penalty formula is otherwise unchanged from v4:
+\[
+  r_i \;\mathrel{-}=\; \lambda_{\text{div}} \left( |C_i| - 1 \right),
+\]
+where $C_i$ is the similarity cluster containing sample $i$ and $|C_i|$ its size --- the first member of a cluster is unpenalized.
+
+Union-find means clustering is \emph{transitive}: molecules $A$ and $C$ can end up in the same cluster via $A$--$B$ and $B$--$C$ both clearing the threshold, even if $\text{sim}(A,C)$ itself does not --- this matters for the calibration below.
+
+\subsection{Calibration against the actual v4 scaffold family}
+
+Before picking a threshold, the 7 molecules that actually dominated v4's Collapse-check output (report\_V1.docx Section 5.6) were fingerprinted and their real pairwise Tanimoto similarities computed directly, rather than guessing a value:
+
+\begin{center}
+\begin{tabular}{@{}l r@{}}
+\toprule
+\textbf{Pair} & \textbf{Tanimoto similarity} \\
+\midrule
+\code{CCCOC(O)OC} vs \code{COC(O)OCCO} & $0.714$ \\
+\code{CCCOC(O)OC} vs \code{CCCCOC(O)OC} & $0.727$ \\
+\code{CCCOC(O)OCO} vs \code{CCCOC(O)OCCO} & $0.762$ \\
+\code{CCCOC(O)OCCO} vs \code{OCCOC(O)OCCO} & $0.778$ \\
+\code{OCCOC(O)OCCO} vs \code{OCCOC(O)OCO} & $0.824$ (max) \\
+\code{OCCOC(O)OCO} vs \code{CCCCOC(O)OC} & $0.321$ (min) \\
+(all 21 pairs) & range $0.32$--$0.82$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{A first-guess default of $0.85$ was tested and found to be too strict}: no pair in the real family reaches $0.85$, so that default would not have caught this exact pattern at all --- the whole point of this change.
+
+Using union-find's transitivity, the minimum threshold at which all 7 molecules chain together into one cluster was computed directly (Kruskal-style: sort pairs descending by similarity, union until fully connected):
+
+\begin{center}
+\begin{tabular}{@{}l l@{}}
+\toprule
+\textbf{Merge order (similarity, descending)} & \textbf{Pair} \\
+\midrule
+$0.824$ & \code{OCCOC(O)OCCO} $\leftrightarrow$ \code{OCCOC(O)OCO} \\
+$0.778$ & \code{CCCOC(O)OCCO} $\leftrightarrow$ \code{OCCOC(O)OCCO} \\
+$0.762$ & \code{CCCOC(O)OCO} $\leftrightarrow$ \code{CCCOC(O)OCCO} \\
+$0.727$ & \code{CCCOC(O)OC} $\leftrightarrow$ \code{CCCCOC(O)OC} \\
+$0.714$ & \code{CCCOC(O)OC} $\leftrightarrow$ \code{COC(O)OCCO} \\
+$\mathbf{0.684}$ (critical --- all 7 connected after this merge) & \code{COC(O)OCCO} $\leftrightarrow$ \code{OCCOC(O)OCCO} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Chosen default: \code{--tanimoto\_threshold 0.65}} (a small margin below the critical $0.684$). Verified directly: re-running the penalty function on the real 7-molecule family plus one unrelated molecule (phenol) at threshold $=0.65$ produces exactly the expected result --- $\text{batch\_uniqueness} = 2/8 = 0.25$ (the family as one cluster, phenol separate), each family member penalized identically (cluster size $7$), phenol untouched.
+
+\note{This is a real, tested calibration against the actual failure case, not an untested guess --- see \code{new\_rl\_finetune\_v5.py}'s \code{compute\_diversity\_penalty()} and its docstring for the implementation.}
+
+\section{v5 Change 2: Cold (Least-Drawn) Compound Sampling}
+\label{sec:cold}
+
+\code{get\_seed\_batch()} previously (v1--v4) drew uniformly at random from each cell line's compound pool every epoch. Given Section~\ref{sec:datascale}'s pool-size skew ($21$ to $43{,}061$ compounds), pure uniform sampling leaves most of a large pool essentially unseen even over thousands of epochs. v5 tracks a persistent per-compound draw counter (\code{init\_draw\_counts()}, one \code{int64} array per cell line, created once and mutated across the whole run) and weights sampling probability as:
+
+\[
+  \boxed{\; w_j \;=\; \dfrac{1}{\left(1 + n_j\right)^{p}} \;}
+\]
+
+where $n_j$ is compound $j$'s draw count so far and $p = $~\code{cold\_power}. Under-sampled (``cold'') compounds get preferentially drawn; once drawn, $n_j$ rises and $w_j$ drops, so the mechanism is self-correcting rather than a one-time reshuffle. $p=0$ recovers v1--v4's uniform random behavior; default is $p = 1.0$.
+
+\textbf{Verified directly:} a toy pool of $10$ items drawn $20$ times at batch size $3$ ($60$ total draws, uniform expectation $=6$ each) produced counts of $[6, 6, 7, 7, 7, 6, 5, 7, 3, 6]$ --- noticeably more even than pure random sampling would produce over the same number of draws, and the underweighted item (count $3$) would be preferentially drawn next round.
+
+\section{v5 Run Configuration}
+
+\begin{center}
+\begin{tabular}{@{}l l p{0.42\textwidth}@{}}
+\toprule
+\textbf{Argument} & \textbf{Value} & \textbf{Note} \\
+\midrule
+Script & \code{\small new\_rl\_finetune\_v5.py} & new file, does not overwrite v4's \code{\small new\_rl\_finetune.py} \\
+\code{--epochs} & $10000$ & up from $2000$ (v1--v4); see Section~\ref{sec:datascale} \\
+\code{--batch} & $64$ & unchanged \\
+\code{--entropy\_coef} & $0.05$ & v2/v4's value --- v3 showed higher doesn't help (report\_V1.docx Section 8.7) \\
+\code{--invalid\_penalty} & $-5.0$ & unchanged from v2--v4 \\
+\code{--lambda\_div} & $0.1$ & unchanged from v4 (untuned first guess, still) \\
+\code{--tanimoto\_threshold} & $0.65$ & NEW --- calibrated in Section~\ref{sec:tanimoto} \\
+\code{--cold\_power} & $1.0$ & NEW --- Section~\ref{sec:cold} \\
+\code{--eval\_every} & $100$ & up from $5$ (v1--v4) --- less checkpoint I/O over a 5x longer run \\
+\code{--out\_dir} & \code{checkpoints\_gen\_rl\_full\_vae\_v5} & \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Submission script: \code{run\_rl\_v5.sh} (sbatch, \code{gh} partition, 2-hour walltime, same pre-flight-check pattern used for v4 after job 878098's ``unrecognized argument'' failure).
+
+\section{Results}
+
+\subsection{Training-log trajectory}
+job 878954, full $10{,}000$ epochs completed within the 2-hour walltime.
+
+\begin{center}
+\begin{tabular}{@{}r r r r r@{}}
+\toprule
+\textbf{Epoch} & \textbf{Entropy} & \textbf{Validity} & \textbf{batch\_uniqueness (Tanimoto)} & \textbf{mean\_reward\_valid} \\
+\midrule
+1     & 1.993 & 17.2\% & 45.5\% & $-4.54$ \\
+100   & 0.408 & 45.3\% & 82.8\% & $-4.19$ \\
+500   & 0.219 & 81.2\% & 76.9\% & $-4.06$ \\
+1000  & 0.234 & 85.9\% & 63.6\% & $-3.76$ \\
+2000  & 0.222 & 96.9\% & 54.8\% & $-3.62$ \\
+3000  & 0.192 & 98.4\% & 42.9\% & $-3.57$ \\
+5000  & 0.086 & 93.8\% & 36.7\% & $-3.14$ \\
+7000  & 0.153 & 95.3\% & 34.4\% & $-3.39$ \\
+9000  & 0.068 & 98.4\% & 36.5\% & $-3.32$ \\
+10000 (tail avg, last 100) & 0.137 & 97.4\% & 35.7\% & $-3.34$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{batch\_uniqueness (Tanimoto) is NOT directly comparable to v4's exact-string batch\_uniqueness ($\approx$55.3\% tail avg):} Tanimoto clustering groups chemically similar molecules together (the whole v4 scaffold family, e.g., would count as ONE cluster, not 7 distinct strings), so it is a stricter, more honest diversity measure by construction --- a lower number under this metric does not mean less true diversity than v4's looser one. The valid comparison point is Section~\ref{sec:eval}, which uses the same exact-string uniqueness definition as v1--v4.
+
+Entropy again settled into the same collapsed range as v1--v4 (tail avg $0.137$) --- consistent with report\_V1.docx Section 8's finding that per-step entropy is decoupled from batch-level output diversity; validity ($97.4\%$) and reward ($-3.34$) both stayed competitive with v2/v4's best results.
+
+\subsection{Independent evaluation}
+\label{sec:eval}
+500 samples/cell line, same 3 cell lines as v1--v4. \textbf{DONE.}
+
+The eval script itself was extended for this check: \code{compute\_tanimoto\_uniqueness()} in \newline\code{new\_rl\_eval\_independent.py} adds a second uniqueness metric (Tanimoto-cluster-based, same union-find definition as the v5 training-time penalty) alongside the original exact-string uniqueness used throughout v1--v4, plus a matching ``top Tanimoto clusters'' Collapse-check printout.
+
+\begin{center}
+\begin{tabular}{@{}l l l@{}}
+\toprule
+\textbf{Mode} & \textbf{Metric} & \textbf{v5 (3-cell-line range)} \\
+\midrule
+prior & Reward-model score & $-3.38 \sim -3.55$ \\
+      & Validity & $95.4$--$97.0\%$ \\
+      & Uniqueness (exact-string) & $17.9$--$20.1\%$ \\
+      & Uniqueness (Tanimoto ratio, $t=0.65$) & $12.5$--$13.4\%$ \\
+      & $n$ Tanimoto clusters (of 500) & $60, 61, 65$ \\
+posterior & Reward-model score & $-3.32 \sim -3.53$ \\
+      & Validity & $97.2$--$98.4\%$ \\
+      & Uniqueness (exact-string) & $14.0$--$18.1\%$ \\
+      & Uniqueness (Tanimoto ratio, $t=0.65$) & $8.5$--$13.0\%$ \\
+      & $n$ Tanimoto clusters (of 500) & $60, 63, 42$ \\
+both  & Novelty rate / Lipinski pass rate & $100\%$ / $100\%$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Caution: the Tanimoto-ratio number is NOT directly comparable across different sample sizes.} Training logged \code{batch\_uniqueness} (same $t=0.65$ definition) averaging $30$--$38\%$ on $64$-sample batches; here, on $500$-sample batches, it reads $8.5$--$13.4\%$. This is a type/token-ratio artifact, not a real regression: if the policy can reach roughly a fixed number of distinct clusters $K$, then
+\[
+  \text{uniqueness ratio} \;=\; \frac{K}{n_{\text{valid}}}
+\]
+mechanically shrinks as $n_{\text{valid}}$ grows, since $K$ grows much more slowly than $n_{\text{valid}}$. The absolute cluster \emph{count} ($42$--$65$ out of $500$) is the more meaningful number at this sample size, and even that undersells the real story --- see Section~\ref{sec:headtohead}.
+
+\subsection{v4 vs v5 head-to-head}
+\label{sec:headtohead}
+The metric that actually matters is concentration, not count.
+
+v4's original eval (report\_V1.docx) predates the Tanimoto-cluster metric, so it isn't directly comparable as-is. Re-running v4's checkpoint (\code{checkpoints\_gen\_rl\_full\_vae\_v4/final\_rl.pt}) through the UPDATED eval script gives a true apples-to-apples comparison on identical cell lines/seed/sample size:
+
+\begin{center}
+\begin{tabular}{@{}l l l l@{}}
+\toprule
+\textbf{Mode} & \textbf{Metric} & \textbf{v4} & \textbf{v5} \\
+\midrule
+prior & $n$ Tanimoto clusters (of $\sim$330) & $96, 108, 116$ & $60, 61, 65$ \\
+      & Largest cluster's share of valid samples & $52.6$--$60.8\%$ ($\approx57\%$) & $14.8$--$24.3\%$ ($\approx18\%$) \\
+posterior & $n$ Tanimoto clusters (of $\sim$485) & $46, 46, 52$ & $42, 60, 63$ \\
+      & Largest cluster's share of valid samples & $84.8$--$86.9\%$ ($\approx86\%$) & $12.1$--$20.3\%$ ($\approx16\%$) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{v4's posterior-mode output was $\approx$86\% concentrated in a single Tanimoto cluster.} E.g.\ ACH-000668: $423$ of $487$ valid samples ($86.9\%$) fell into ONE cluster. v4's exact-string uniqueness looked reasonable ($28$--$32\%$) only because that mega-cluster's members were mostly distinct \emph{strings} (chain-length/branching variants of one scaffold, per report\_V1.docx Section 5.6) padded out by a long tail of one-off ``noise'' molecules that inflate the raw cluster count without adding real accessible diversity --- v4's higher raw cluster count ($46$--$116$) than v5's ($42$--$65$) is exactly this: many singleton clusters in a thin tail, not genuine breadth.
+
+\textbf{v5's largest cluster never exceeds $\approx$24\% of any batch.} No single template dominates the way v4's scaffold family did --- the generation is genuinely spread across $42$--$65$ structurally distinct clusters with no single one taking over.
+
+\textbf{Verdict --- this reverses the initial read from Section~\ref{sec:eval}'s raw exact-string numbers:} v5 IS a real, substantial diversity improvement over v4, even though its exact-string uniqueness reads lower ($14$--$20\%$ vs.\ v4's $28$--$57\%$). Exact-string uniqueness was measuring something v4 was gaming (superficial string variation within one dominant chemotype); cluster concentration measures the thing that actually matters (how much of the output space one template can monopolize), and by that measure v5's $\approx$16--18\% average concentration is dramatically better than v4's $\approx$57--86\%. Combined with report\_V1.docx's earlier finding that v5's reward stayed competitive with v2/v4's best ($-3.3 \sim -3.5$), \textbf{v5 is the best result across all five runs (v1--v5)} on the combination of validity, reward, AND genuine (not just nominal) diversity.
+
+\note{Practical implication for future work: exact-string uniqueness should not be used alone as a diversity metric going forward for this project --- it can be gamed by scaffold/chain-length variation, exactly as v4 demonstrated. Tanimoto-cluster concentration (largest cluster's share) is the more honest single number; raw cluster count alone is also misleading when the distribution is long-tailed.}
+
+\end{document}

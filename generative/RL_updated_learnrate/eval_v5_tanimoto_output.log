@@ -1,0 +1,114 @@
+Vocab size: 52 | unique valid training compounds: 56784
+Evaluating cell lines: ['ACH-000668', 'ACH-000258', 'ACH-000876'] | sample_mode(s): ['prior', 'posterior']
+
+=== ACH-000668 ===
+  --- mode: prior (encoder-free) ---
+  [Reward-model]        mean score (higher=better) = -3.4125
+  [Independent] validity=95.80% | uniqueness=18.16% | tanimoto_uniqueness(t=0.65)=12.53% | novelty_rate=100.00% | Lipinski_pass_rate=100.00% | mean_NN_Tanimoto=0.29041731830605194
+  [Collapse check] 87 distinct valid molecules across 479 valid samples | 47 appear exactly once
+  [Collapse check] top repeats (exact string):
+      x53   CCCOC(CC)OC
+      x40   COC(C)OC
+      x32   CCCOC(OC)OC
+      x31   CCCOC(O)OC
+      x26   CCCOC(C)OC
+  [Collapse check] 60 distinct Tanimoto clusters (t=0.65) across 479 valid samples
+  [Collapse check] top Tanimoto clusters (representative SMILES x cluster size):
+      x73   CCC(OC)OCO
+      x44   CCCCCOC(O)OC
+      x40   COC(C)OC
+      x35   COC(C)OCCO
+      x34   COC(OC)OCCO
+
+  --- mode: posterior (encoder-seeded) ---
+  [Reward-model]        mean score (higher=better) = -3.3984
+  [Independent] validity=97.20% | uniqueness=17.28% | tanimoto_uniqueness(t=0.65)=12.35% | novelty_rate=100.00% | Lipinski_pass_rate=100.00% | mean_NN_Tanimoto=0.2945724737853309
+  [Collapse check] 84 distinct valid molecules across 486 valid samples | 42 appear exactly once
+  [Collapse check] top repeats (exact string):
+      x65   CCCOC(CC)OC
+      x38   CCCOC(O)OC
+      x35   COC(C)OC
+      x31   CCCOC(OC)OC
+      x28   CCCOC(C)C
+  [Collapse check] 60 distinct Tanimoto clusters (t=0.65) across 486 valid samples
+  [Collapse check] top Tanimoto clusters (representative SMILES x cluster size):
+      x82   CCCC(OC)OC
+      x49   CCCCOC(O)OC
+      x38   CCOC(OC)OC
+      x35   COC(C)OC
+      x30   COC(C)OCCO
+
+=== ACH-000258 ===
+  --- mode: prior (encoder-free) ---
+  [Reward-model]        mean score (higher=better) = -3.5488
+  [Independent] validity=95.40% | uniqueness=20.13% | tanimoto_uniqueness(t=0.65)=12.79% | novelty_rate=100.00% | Lipinski_pass_rate=100.00% | mean_NN_Tanimoto=0.29615539032229143
+  [Collapse check] 96 distinct valid molecules across 477 valid samples | 55 appear exactly once
+  [Collapse check] top repeats (exact string):
+      x41   CCCOC(CC)OC
+      x34   CCCOC(C)C
+      x32   COC(C)OC
+      x28   CCCOC(O)OC
+      x23   CCCOC(OC)OC
+  [Collapse check] 61 distinct Tanimoto clusters (t=0.65) across 477 valid samples
+  [Collapse check] top Tanimoto clusters (representative SMILES x cluster size):
+      x116  CCCOC(O)OCCOC(C)C
+      x58   CCC(OC)OCCCN
+      x37   CCCC(O)OCO
+      x32   COC(C)OC
+      x29   COC(C)OCCO
+
+  --- mode: posterior (encoder-seeded) ---
+  [Reward-model]        mean score (higher=better) = -3.5259
+  [Independent] validity=97.20% | uniqueness=18.11% | tanimoto_uniqueness(t=0.65)=12.96% | novelty_rate=100.00% | Lipinski_pass_rate=100.00% | mean_NN_Tanimoto=0.2990774045272104
+  [Collapse check] 88 distinct valid molecules across 486 valid samples | 46 appear exactly once
+  [Collapse check] top repeats (exact string):
+      x41   CCCOC(CC)OC
+      x38   CCCOC(C)C
+      x33   CCCOC(O)OC
+      x31   COC(C)OC
+      x27   CCCOC(OC)OC
+  [Collapse check] 63 distinct Tanimoto clusters (t=0.65) across 486 valid samples
+  [Collapse check] top Tanimoto clusters (representative SMILES x cluster size):
+      x59   CCCOC(CCC)OC
+      x40   CCCC(O)OCO
+      x38   COC(O)OCCO
+      x38   CCCOC(C)C
+      x32   COC(C)OCCO
+
+=== ACH-000876 ===
+  --- mode: prior (encoder-free) ---
+  [Reward-model]        mean score (higher=better) = -3.3815
+  [Independent] validity=97.00% | uniqueness=17.94% | tanimoto_uniqueness(t=0.65)=13.40% | novelty_rate=100.00% | Lipinski_pass_rate=100.00% | mean_NN_Tanimoto=0.29388887711913503
+  [Collapse check] 87 distinct valid molecules across 485 valid samples | 46 appear exactly once
+  [Collapse check] top repeats (exact string):
+      x49   CCCOC(CC)OC
+      x39   COC(C)OC
+      x36   CCCOC(O)OC
+      x34   CCCOC(OC)OC
+      x21   COC(O)OCO
+  [Collapse check] 65 distinct Tanimoto clusters (t=0.65) across 485 valid samples
+  [Collapse check] top Tanimoto clusters (representative SMILES x cluster size):
+      x72   CCCC(OC)OC
+      x43   COC(O)OCCO
+      x39   CCCCOC(OC)OC
+      x39   COC(C)OC
+      x28   CCCCC(O)OCCC
+
+  --- mode: posterior (encoder-seeded) ---
+  [Reward-model]        mean score (higher=better) = -3.3235
+  [Independent] validity=98.40% | uniqueness=14.02% | tanimoto_uniqueness(t=0.65)=8.54% | novelty_rate=100.00% | Lipinski_pass_rate=100.00% | mean_NN_Tanimoto=0.3036214899015568
+  [Collapse check] 69 distinct valid molecules across 492 valid samples | 33 appear exactly once
+  [Collapse check] top repeats (exact string):
+      x52   CCCOC(CC)OC
+      x49   COC(C)OC
+      x43   CCCOC(O)OC
+      x37   CCCOC(OC)OC
+      x28   CCCOC(C)OC
+  [Collapse check] 42 distinct Tanimoto clusters (t=0.65) across 492 valid samples
+  [Collapse check] top Tanimoto clusters (representative SMILES x cluster size):
+      x100  CCCOC(O)OCCC
+      x75   CCCOC(CCC)OC
+      x49   COC(C)OC
+      x38   COC(OC)OCCO
+      x33   COC(C)OCCO
+

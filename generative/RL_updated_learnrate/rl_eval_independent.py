@@ -24,10 +24,10 @@ Run from inside RL_updated_learnrate/, e.g.:
 
     python rl_eval_independent.py \
         --rl_ckpt checkpoints_gen_rl/final_rl.pt \
-        --dl4dr_ckpt ../checkpoints/best_random.pt \
-        --data ../data/BREAST-136344-56786-51.txt \
-        --smiles ../data/CompoundSmiles_full_140474.txt \
-        --genomic ../genomic_images \
+        --dl4dr_ckpt ../../checkpoints/best_random.pt \
+        --data ../../data/BREAST-136344-56786-51.txt \
+        --smiles ../../data/CompoundSmiles_full_140474.txt \
+        --genomic ../../genomic_images \
         --n_samples 200
 """
 import argparse

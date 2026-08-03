@@ -5,6 +5,17 @@ REINFORCE fine-tuning of the compound generator against the frozen DL4DR
 predictor (best_random.pt) as a reward model, as an alternative to the VAE
 in VAE_updated_learnrate/.
 
+MODIFIED (diagnostic + fix for reward-floor hypothesis):
+  - INVALID_PENALTY is now a CLI arg (--invalid_penalty) instead of a
+    hardcoded constant, so its value can be swept without editing code.
+  - history_rl.csv and the console log now also report the mean/min/max
+    reward among VALID-only samples each epoch, separately from the
+    overall batch mean_reward. This directly tests whether valid molecules
+    are actually scoring better than INVALID_PENALTY, or whether a
+    meaningful fraction of valid molecules score *worse* than the
+    invalid-SMILES floor (which would mean "being valid" is not being
+    incentivized relative to "being invalid" at all).
+
 Parallel structure to train.py:
   --data / --smiles / --genomic / --ckpt   : same as train.py (--ckpt is the
                                               frozen predictor, required)
@@ -19,12 +30,12 @@ Parallel structure to train.py:
 Run from inside RL_updated_learnrate/, e.g.:
 
     python rl_finetune.py \
-        --data ../data/BREAST-136344-56786-51.txt \
-        --smiles ../data/CompoundSmiles_full_140474.txt \
-        --genomic ../genomic_images \
-        --ckpt ../checkpoints/best_random.pt \
+        --data ../../data/BREAST-136344-56786-51.txt \
+        --smiles ../../data/CompoundSmiles_full_140474.txt \
+        --genomic ../../genomic_images \
+        --ckpt ../../checkpoints/best_random.pt \
         --resume ../VAE_updated_learnrate/checkpoints_gen/best_vae.pt \
-        --epochs 100 --batch 64
+        --epochs 100 --batch 64 --invalid_penalty -10.0
 
 Reward: reward = -predicted_ln_ic50  (lower predicted IC50 = more effective
 = higher reward), with a fixed penalty for invalid/undecodable SMILES so the
@@ -77,7 +88,6 @@ smiles_to_graph = repo_model.smiles_to_graph
 smiles_to_ecfp = repo_model.smiles_to_ecfp
 
 MAX_LEN = 120
-INVALID_PENALTY = -3.0  # reward assigned to SMILES that don't decode to a valid molecule
 
 
 # ─────────────────────────────────────────────────────────────
@@ -85,10 +95,10 @@ INVALID_PENALTY = -3.0  # reward assigned to SMILES that don't decode to a valid
 # DL4DR predictor, per cell line
 # ─────────────────────────────────────────────────────────────
 
-def score_with_predictor(predictor, smiles_list, genomic_img, device, mol_img_size=64):
+def score_with_predictor(predictor, smiles_list, genomic_img, device, invalid_penalty, mol_img_size=64):
     """
     For each SMILES: canonicalize + build (mol_graph, mol_img, ecfp);
-    invalid ones get INVALID_PENALTY. Valid ones get reward = -predicted_ic50.
+    invalid ones get invalid_penalty. Valid ones get reward = -predicted_ic50.
     Returns a (len(smiles_list),) tensor of rewards and a bool validity mask.
     """
     from torch_geometric.data import Batch
@@ -121,7 +131,7 @@ def score_with_predictor(predictor, smiles_list, genomic_img, device, mol_img_si
         imgs.append(img_t)
         ecfps.append(e)
 
-    rewards = torch.full((len(smiles_list),), INVALID_PENALTY, device=device)
+    rewards = torch.full((len(smiles_list),), invalid_penalty, device=device)
     valid_mask = torch.zeros(len(smiles_list), dtype=torch.bool)
 
     if not valid_idx:
@@ -157,6 +167,12 @@ def main():
     ap.add_argument("--batch", type=int, default=64, help="Samples drawn per cell line per epoch")
     ap.add_argument("--lr", type=float, default=1e-5, help="Keep small — RL fine-tuning, not training from scratch")
     ap.add_argument("--entropy_coef", type=float, default=0.01, help="Entropy bonus to slow mode collapse")
+    ap.add_argument("--invalid_penalty", type=float, default=-3.0,
+                     help="Reward assigned to invalid/undecodable SMILES. NOTE: this is NOT "
+                          "guaranteed to be a floor — valid molecules can score below this if "
+                          "the predictor rates them as ineffective (high predicted IC50). Set "
+                          "well below the typical valid-reward range if you want validity to be "
+                          "unambiguously incentivized.")
     ap.add_argument("--zc_dim", type=int, default=256)
     ap.add_argument("--out_dir", default="checkpoints_gen_rl")
     ap.add_argument("--eval_every", type=int, default=5)
@@ -197,6 +213,10 @@ def main():
     policy = PolicyWrapper(policy_net)
     optimizer = torch.optim.Adam(policy_net.parameters(), lr=args.lr)
 
+    print(f"invalid_penalty = {args.invalid_penalty:+.2f}  "
+          f"(watch mean_reward_valid below — if it's frequently <= invalid_penalty, "
+          f"validity is not actually being incentivized)")
+
     baseline = 0.0  # running-mean reward baseline for REINFORCE variance reduction
     baseline_momentum = 0.9
 
@@ -216,7 +236,9 @@ def main():
         tokens, logprobs, entropy = policy.sample(z_c.repeat(args.batch, 1), n_samples=args.batch)
         smiles_batch = [vocab.decode(t.tolist()) for t in tokens]
 
-        rewards, valid_mask = score_with_predictor(predictor, smiles_batch, img_tensor, device)
+        rewards, valid_mask = score_with_predictor(
+            predictor, smiles_batch, img_tensor, device, args.invalid_penalty
+        )
 
         # REINFORCE with baseline
         advantage = rewards.detach() - baseline
@@ -231,13 +253,33 @@ def main():
         baseline = baseline_momentum * baseline + (1 - baseline_momentum) * batch_mean_reward
         validity = valid_mask.float().mean().item()
 
+        # ── diagnostic: reward stats restricted to VALID samples only ──
+        if valid_mask.any():
+            valid_rewards = rewards[valid_mask]
+            mean_reward_valid = valid_rewards.mean().item()
+            min_reward_valid = valid_rewards.min().item()
+            max_reward_valid = valid_rewards.max().item()
+            frac_valid_below_penalty = (valid_rewards <= args.invalid_penalty).float().mean().item()
+        else:
+            mean_reward_valid = float("nan")
+            min_reward_valid = float("nan")
+            max_reward_valid = float("nan")
+            frac_valid_below_penalty = float("nan")
+
         row = dict(epoch=epoch, ach_id=ach_id, loss=loss.item(),
                    mean_reward=batch_mean_reward, validity=validity,
-                   baseline=baseline, entropy=entropy.mean().item())
+                   baseline=baseline, entropy=entropy.mean().item(),
+                   invalid_penalty=args.invalid_penalty,
+                   mean_reward_valid=mean_reward_valid,
+                   min_reward_valid=min_reward_valid,
+                   max_reward_valid=max_reward_valid,
+                   frac_valid_below_penalty=frac_valid_below_penalty)
         history.append(row)
         print(f"Epoch {epoch:4d} | cell {ach_id} | loss {loss.item():+.4f} | "
               f"mean_reward {batch_mean_reward:+.4f} | validity {validity:.2%} | "
-              f"entropy {entropy.mean().item():.3f}")
+              f"entropy {entropy.mean().item():.3f} | "
+              f"reward_valid[mean/min/max] {mean_reward_valid:+.2f}/{min_reward_valid:+.2f}/{max_reward_valid:+.2f} | "
+              f"frac_valid<=penalty {frac_valid_below_penalty:.2%}")
 
         if epoch % args.eval_every == 0:
             torch.save(policy_net.state_dict(), os.path.join(args.out_dir, "latest_rl.pt"))

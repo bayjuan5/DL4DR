@@ -1,0 +1,72 @@
+Vocab size: 52 | unique valid training compounds: 56784
+Evaluating cell lines: ['ACH-000668', 'ACH-000258', 'ACH-000876'] | sample_mode(s): ['prior', 'posterior']
+
+=== ACH-000668 ===
+  --- mode: prior (encoder-free) ---
+  [Reward-model]        mean score (higher=better) = -3.4125
+  [Independent] validity=95.80% | uniqueness=18.16% | novelty_rate=100.00% | Lipinski_pass_rate=100.00% | mean_NN_Tanimoto=0.290417318306052
+  [Collapse check] 87 distinct valid molecules across 479 valid samples | 47 appear exactly once
+  [Collapse check] top repeats:
+      x53   CCCOC(CC)OC
+      x40   COC(C)OC
+      x32   CCCOC(OC)OC
+      x31   CCCOC(O)OC
+      x26   CCCOC(C)OC
+
+  --- mode: posterior (encoder-seeded) ---
+  [Reward-model]        mean score (higher=better) = -3.3984
+  [Independent] validity=97.20% | uniqueness=17.28% | novelty_rate=100.00% | Lipinski_pass_rate=100.00% | mean_NN_Tanimoto=0.29457247378533097
+  [Collapse check] 84 distinct valid molecules across 486 valid samples | 42 appear exactly once
+  [Collapse check] top repeats:
+      x65   CCCOC(CC)OC
+      x38   CCCOC(O)OC
+      x35   COC(C)OC
+      x31   CCCOC(OC)OC
+      x28   CCCOC(C)C
+
+=== ACH-000258 ===
+  --- mode: prior (encoder-free) ---
+  [Reward-model]        mean score (higher=better) = -3.5488
+  [Independent] validity=95.40% | uniqueness=20.13% | novelty_rate=100.00% | Lipinski_pass_rate=100.00% | mean_NN_Tanimoto=0.29615539032229143
+  [Collapse check] 96 distinct valid molecules across 477 valid samples | 55 appear exactly once
+  [Collapse check] top repeats:
+      x41   CCCOC(CC)OC
+      x34   CCCOC(C)C
+      x32   COC(C)OC
+      x28   CCCOC(O)OC
+      x23   CCCOC(OC)OC
+
+  --- mode: posterior (encoder-seeded) ---
+  [Reward-model]        mean score (higher=better) = -3.5259
+  [Independent] validity=97.20% | uniqueness=18.11% | novelty_rate=100.00% | Lipinski_pass_rate=100.00% | mean_NN_Tanimoto=0.2990774045272104
+  [Collapse check] 88 distinct valid molecules across 486 valid samples | 46 appear exactly once
+  [Collapse check] top repeats:
+      x41   CCCOC(CC)OC
+      x38   CCCOC(C)C
+      x33   CCCOC(O)OC
+      x31   COC(C)OC
+      x27   CCCOC(OC)OC
+
+=== ACH-000876 ===
+  --- mode: prior (encoder-free) ---
+  [Reward-model]        mean score (higher=better) = -3.3815
+  [Independent] validity=97.00% | uniqueness=17.94% | novelty_rate=100.00% | Lipinski_pass_rate=100.00% | mean_NN_Tanimoto=0.29388887711913503
+  [Collapse check] 87 distinct valid molecules across 485 valid samples | 46 appear exactly once
+  [Collapse check] top repeats:
+      x49   CCCOC(CC)OC
+      x39   COC(C)OC
+      x36   CCCOC(O)OC
+      x34   CCCOC(OC)OC
+      x21   COC(O)OCO
+
+  --- mode: posterior (encoder-seeded) ---
+  [Reward-model]        mean score (higher=better) = -3.3235
+  [Independent] validity=98.40% | uniqueness=14.02% | novelty_rate=100.00% | Lipinski_pass_rate=100.00% | mean_NN_Tanimoto=0.30362148990155674
+  [Collapse check] 69 distinct valid molecules across 492 valid samples | 33 appear exactly once
+  [Collapse check] top repeats:
+      x52   CCCOC(CC)OC
+      x49   COC(C)OC
+      x43   CCCOC(O)OC
+      x37   CCCOC(OC)OC
+      x28   CCCOC(C)OC
+

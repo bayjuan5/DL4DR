@@ -1,0 +1,30 @@
+Vocab size: 52 | unique valid training compounds: 56784
+Evaluating cell lines: ['ACH-000668', 'ACH-000258', 'ACH-000876'] | sample_mode(s): ['prior', 'posterior']
+
+=== ACH-000668 ===
+  --- mode: prior (encoder-free) ---
+  [Reward-model]        mean score (higher=better) = -3.5517
+  [Independent] validity=65.40% | uniqueness=27.22% | novelty_rate=100.00% | Lipinski_pass_rate=100.00% | mean_NN_Tanimoto=0.26910584370203705
+
+  --- mode: posterior (encoder-seeded) ---
+  [Reward-model]        mean score (higher=better) = -3.1474
+  [Independent] validity=97.00% | uniqueness=7.01% | novelty_rate=100.00% | Lipinski_pass_rate=100.00% | mean_NN_Tanimoto=0.2761802363017034
+
+=== ACH-000258 ===
+  --- mode: prior (encoder-free) ---
+  [Reward-model]        mean score (higher=better) = -3.5038
+  [Independent] validity=58.80% | uniqueness=24.15% | novelty_rate=100.00% | Lipinski_pass_rate=100.00% | mean_NN_Tanimoto=0.29722921713087025
+
+  --- mode: posterior (encoder-seeded) ---
+  [Reward-model]        mean score (higher=better) = -3.2404
+  [Independent] validity=97.40% | uniqueness=5.13% | novelty_rate=100.00% | Lipinski_pass_rate=100.00% | mean_NN_Tanimoto=0.29852356882559616
+
+=== ACH-000876 ===
+  --- mode: prior (encoder-free) ---
+  [Reward-model]        mean score (higher=better) = -3.4707
+  [Independent] validity=63.60% | uniqueness=25.16% | novelty_rate=100.00% | Lipinski_pass_rate=100.00% | mean_NN_Tanimoto=0.29952536166242993
+
+  --- mode: posterior (encoder-seeded) ---
+  [Reward-model]        mean score (higher=better) = -3.1395
+  [Independent] validity=98.40% | uniqueness=5.28% | novelty_rate=100.00% | Lipinski_pass_rate=100.00% | mean_NN_Tanimoto=0.2877157449125792
+
