@@ -67,7 +67,40 @@ def build(twb: str) -> str:
     ws = twb[start:end]
     ws = re.sub(r"\s*<color column='\[[^\]]+\]\.\[:Measure Names\]' />", '', ws)
     ws = re.sub(r"(<reference-line [^>]*formula='constant'[^>]*value=')[^']*(')", r"\g<1>0\g<2>", ws)
+    # thinner CI bars: <style> must be the LAST child of <pane> (schema order)
+    ws = re.sub(r"(<mark class='GanttBar' />.*?)(\s*</pane>)",
+                lambda m: m.group(1) + "\n            <style>\n              <style-rule element='mark'>\n"
+                "                <format attr='size' value='0.35' />\n              </style-rule>\n            </style>" + m.group(2),
+                ws, count=1, flags=re.S)
+    ws = re.sub(r"(<reference-line [^>]*)label-type='[^']*'", r"\g<1>label-type='none'", ws)
+    # 2. median dots: black, larger, drawn on top of the CI bars
+    ws = re.sub(r"(<pane id='1' [^>]*sum:median_delta:qk\]'>.*?<mark class='Circle' />)\s*<encodings>.*?</encodings>",
+                r"\g<1>\n            <style>\n              <style-rule element='mark'>\n"
+                r"                <format attr='mark-color' value='#000000' />\n"
+                r"                <format attr='size' value='1.6' />\n"
+                r"              </style-rule>\n            </style>", ws, flags=re.S)
     twb = twb[:start] + ws + twb[end:]
+
+    # forest plot: descriptive title
+    title = ("<layout-options>\n        <title>\n          <formatted-text>\n"
+             "            <run fontcolor='#000000'>Per-cell-line \u0394R\u00b2 vs. DL4DR (623 paired cell lines)</run>\n"
+             "          </formatted-text>\n        </title>\n      </layout-options>\n      ")
+    if not re.search(r"<worksheet name='Paired comparison'>\r?\n\s*<layout-options>", twb):
+        twb = re.sub(r"(<worksheet name='Paired comparison'>\r?\n\s*)(<table>)",
+                     lambda m: m.group(1) + title + m.group(2), twb, count=1)
+
+    # legend: shorter label for the 'Tie (not significant)' category
+    twb = re.sub(r"<column caption='Favours' datatype='string' name='\[favours\]' role='dimension' type='nominal' />",
+                 "<column caption='Favours' datatype='string' name='[favours]' role='dimension' type='nominal'>"
+                 "<aliases><alias key='&quot;Tie (not significant)&quot;' value='Not significant' /></aliases></column>",
+                 twb, count=1)
+
+    # ranking chart: hide the continuous Rank axis (it showed 1.5, 2.5 ...);
+    # vertical order already shows the rank, top = 1st
+    twb = twb.replace("<style-rule element='worksheet'>\n            <format attr='display-field-labels' scope='cols' value='false' />",
+                      "<style-rule element='worksheet'>\n            <format attr='display-field-labels' scope='cols' value='false' />", 1)
+    twb = re.sub(r"(<encoding attr='space' class='0' domain-expand='false' field='(\[[^\]]+\])\.\[sum:rank:qk\]'[^>]*/>)",
+                 r"\g<1>\n            <format attr='display' class='0' field='\g<2>.[sum:rank:qk]' scope='rows' value='false' />", twb, count=1)
     twb = twb.replace(f"param='[{ds}].[none:favours:nk]&#10;[{ds}].[:Measure Names]'",
                       f"param='[{ds}].[none:favours:nk]'")
 
@@ -92,7 +125,7 @@ def build(twb: str) -> str:
         "            <zone h='7000' id='3' type-v2='title' w='98400' x='800' y='1000' fixed-size='52' is-fixed='true' />\n"
         + text_zone(4, 8000, 9000, FINDING, 12, '#333333', fixed_px=70) +
         "            <zone h='72000' id='5' param='horz' type-v2='layout-flow' w='98400' x='800' y='17000'>\n"
-        f"              <zone h='72000' id='6' name='{escape(SLOPE)}' w='46000' x='800' y='17000' />\n"
+        f"              <zone h='72000' id='6' name='{escape(SLOPE)}' w='46000' x='800' y='17000' fixed-size='620' is-fixed='true' />\n"
         "              <zone h='72000' id='7' param='vert' type-v2='layout-flow' w='52400' x='46800' y='17000'>\n"
         f"                <zone h='62000' id='8' name='{FOREST}' w='52400' x='46800' y='17000' />\n"
         f"                <zone h='10000' id='9' name='{FOREST}' pane-specification-id='2' param='[{ds}].[none:favours:nk]' type-v2='color' w='52400' x='46800' y='79000' fixed-size='80' is-fixed='true' />\n"
@@ -113,7 +146,9 @@ def build(twb: str) -> str:
     win = (
         f"    <window class='dashboard' maximized='true' name='{DASH}'>\n"
         "      <viewpoints>\n"
-        f"        <viewpoint name='{FOREST}' />\n"
+        f"        <viewpoint name='{FOREST}'>\n"
+        "          <zoom type='entire-view' />\n"
+        "        </viewpoint>\n"
         f"        <viewpoint name='{escape(SLOPE)}'>\n"
         "          <zoom type='entire-view' />\n"
         "        </viewpoint>\n"

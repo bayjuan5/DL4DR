@@ -4,7 +4,11 @@ Interactive dashboard of benchmark results for **DL4DR (Two-Tower Residual Late 
 prediction model evaluated on unseen cancer cell lines (5-fold leave-cell-line-out cross-validation, 623 held-out
 cell lines, 177,836 held-out drug-response records).
 
-- Dashboard: *(Tableau Public link — add after publishing)*
+![DL4DR benchmark dashboard](dashboard.png)
+
+- Tableau workbook: [`DL4DR_dashboard_v3.twbx`](DL4DR_dashboard_v3.twbx) (open with the free Tableau Desktop Public Edition)
+- Dashboard build script: [`build_dashboard.py`](build_dashboard.py) — adds the *Overview* dashboard to a workbook containing the two sheets:
+  `python build_dashboard.py <input.twbx> <output.twbx>`
 - Model code: https://github.com/bayjuan5/DL4DR
 - Author: Beibei Huang, Ph.D. (iMDLab, Houston, TX)
 
