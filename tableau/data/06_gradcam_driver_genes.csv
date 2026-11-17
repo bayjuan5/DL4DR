@@ -1,0 +1,51 @@
+gene,n_cell_lines_top_driver,fraction_of_51,annotation
+FSIP2,6,0.1176,Novel candidate
+CPAMD8,5,0.098,Novel candidate
+OBSCN,5,0.098,Novel candidate
+HEATR1,5,0.098,Novel candidate
+TP53,5,0.098,Known breast-cancer driver
+PRX,4,0.0784,Novel candidate
+DNAH7,4,0.0784,Novel candidate
+MICAL1,4,0.0784,Novel candidate
+SIPA1L1,4,0.0784,Novel candidate
+KIAA1109,4,0.0784,Novel candidate
+POLR1B,4,0.0784,Novel candidate
+ZNF141,4,0.0784,Novel candidate
+DNAH5,4,0.0784,Novel candidate
+DNAH11,4,0.0784,Novel candidate
+TAF4,4,0.0784,Novel candidate
+ASCC3,3,0.0588,Novel candidate
+DSP,3,0.0588,Novel candidate
+CEP350,3,0.0588,Novel candidate
+BAZ2B,3,0.0588,Novel candidate
+PRKAA1,3,0.0588,Novel candidate
+BRCA2,3,0.0588,Known breast-cancer driver
+TUBGCP6,3,0.0588,Novel candidate
+KIDINS220,3,0.0588,Novel candidate
+NTF4,3,0.0588,Novel candidate
+RAPGEF4,3,0.0588,Novel candidate
+ELMO2,3,0.0588,Novel candidate
+DST,3,0.0588,Novel candidate
+ATG4C,3,0.0588,Novel candidate
+DEPTOR,3,0.0588,Novel candidate
+LRRC8C,3,0.0588,Novel candidate
+HOXB3,3,0.0588,Novel candidate
+LYST,3,0.0588,Novel candidate
+TRIM47,3,0.0588,Novel candidate
+EEA1,3,0.0588,Novel candidate
+EPB41L4A,3,0.0588,Novel candidate
+ABCC6,3,0.0588,Novel candidate
+PIK3C2B,3,0.0588,Novel candidate
+ZFYVE9,3,0.0588,Novel candidate
+AKAP8L,3,0.0588,Novel candidate
+RNF216,3,0.0588,Novel candidate
+TENM1,3,0.0588,Novel candidate
+FAM186A,3,0.0588,Novel candidate
+CNST,3,0.0588,Novel candidate
+C1orf112,3,0.0588,Novel candidate
+C9orf43,3,0.0588,Novel candidate
+ATP8A2,3,0.0588,Novel candidate
+ABCB7,3,0.0588,Novel candidate
+HELZ2,3,0.0588,Novel candidate
+FGFR2,1,0.0196,Known breast-cancer driver
+CDH1,1,0.0196,Known breast-cancer driver

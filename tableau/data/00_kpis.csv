@@ -1,0 +1,11 @@
+kpi,value,note
+Cell lines,625.0,DepMap panel
+Compounds,56780.0,GDSC1/GDSC2/ChEMBL
+Drug-response records,245558.0,pIC50
+Held-out records scored,177836.0,all methods
+Held-out cell lines,623.0,5-fold leave-cell-line-out
+Matrix density (%),0.69,"245,558 of 56,780 x 625"
+Compounds tested on 1 cell line (%),58.6,sparsity
+Assay types,13.0,viability assays
+External zero-shot cell lines,601.0,27 tissue types
+Genes in expression channel,19177.0,genomic image 3x139x139

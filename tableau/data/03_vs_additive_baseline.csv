@@ -1,0 +1,6 @@
+model,model_family,n_cell_lines,wins,losses,ties,win_rate,substantial_wins_gt_0.02,mean_delta,worst_delta,sign_test_p
+XGBoost,Tree ensemble,623,467,156,0,0.7496,390,0.0856,-0.7211,5.872686077765103e-37
+LightGBM,Tree ensemble,623,459,164,0,0.7368,379,0.0848,-0.6205,2.944091046677201e-33
+Random forest,Tree ensemble,623,456,167,0,0.7319,368,0.0708,-1.1197,6.269266357357238e-32
+DL4DR (Residual Fusion),Deep learning,623,390,233,0,0.626,321,0.0605,-1.0261,3.330160531193409e-10
+GraphDRP,Deep learning,623,373,250,0,0.5987,306,0.0507,-0.5736,9.438189735766418e-07

@@ -1,0 +1,6 @@
+comparator,comparator_family,n_cell_lines,median_delta,ci_lo,ci_hi,dl4dr_wins,dl4dr_losses,win_rate,p_value,effect_size,significant_bonferroni,favours
+GraphDRP,Deep learning,623,0.0029,-0.0029,0.0092,322,301,0.5169,0.0409620909779314,0.034,False,Tie (not significant)
+LightGBM,Tree ensemble,623,-0.0214,-0.0261,-0.0174,218,405,0.3499,4.6337177848613e-18,-0.3,True,Comparator
+Random forest,Tree ensemble,623,-0.0139,-0.0193,-0.0097,239,384,0.3836,2.1801022376847478e-08,-0.233,True,Comparator
+XGBoost,Tree ensemble,623,-0.0218,-0.0267,-0.0162,205,418,0.3291,4.0696766021032863e-19,-0.342,True,Comparator
+Additive baseline,Baseline,623,0.0234,0.0155,0.0296,390,233,0.626,2.1646840319720443e-16,0.252,True,DL4DR

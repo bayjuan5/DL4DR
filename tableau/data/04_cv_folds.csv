@@ -1,0 +1,6 @@
+fold,train_cell_lines,val_cell_lines,test_cell_lines,test_records,stop_epoch,median_r2_full,mean_r2_full,beats_additive_full,pooled_r2_full,pooled_r2_additive,median_r2_gate_off,beats_additive_gate_off,pooled_r2_gate_off,pct_beats_additive_full,pct_beats_additive_gate_off
+0,459,51,115,40836,43,0.76,0.714,65,0.685,0.681,0.759,73,0.683,0.5652,0.6348
+1,454,50,121,39852,26,0.78,0.75,83,0.733,0.707,0.765,65,0.668,0.686,0.5372
+2,452,50,123,39390,35,0.781,0.725,79,0.74,0.708,0.753,68,0.73,0.6423,0.5528
+3,443,49,133,28861,32,0.762,0.719,74,0.73,0.692,0.741,70,0.688,0.5564,0.5263
+4,445,49,131,28897,34,0.787,0.73,89,0.712,0.659,0.777,76,0.753,0.6794,0.5802
